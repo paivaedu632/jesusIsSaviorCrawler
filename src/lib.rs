@@ -32,19 +32,23 @@ pub use markdown_flattener::html_to_markdown;
 // Common types and structures
 pub use serde::{Deserialize, Serialize};
 
-/// Simplified Post schema with direct Markdown content
+/// Post schema matching schema.json format
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Post {
-    /// Author/site avatar image URL
+    /// Author avatar URL
     pub avatar: String,
-    /// Author or site name
+    /// Author name
     pub username: String,
     /// Original source URL
     pub url: String,
     /// Page title (optional)
     pub title: Option<String>,
+    /// Date published (YYYY-MM-DD format)
+    pub date_published: Option<String>,
+    /// Date updated (YYYY-MM-DD format) 
+    pub date_updated: Option<String>,
+    /// Auto-extracted tags from URL
+    pub tags: Vec<String>,
     /// Markdown-formatted content
     pub content: String,
-    /// Auto-extracted tags from URL segments
-    pub tags: Vec<String>,
 }

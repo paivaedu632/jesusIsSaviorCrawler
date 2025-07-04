@@ -229,6 +229,8 @@ impl OptimizedScraper {
         
         let document = Html::parse_document(&body);
         let title = self.extract_title(&document);
+        let (date_published, date_updated) = self.extract_dates(&document);
+        let tags = self.extract_tags_from_url(url);
         
         // Call html_to_markdown to obtain content
         let content = html_to_markdown(&document, url).await;
@@ -238,8 +240,10 @@ impl OptimizedScraper {
             username: "David J. Stewart".to_string(),
             url: url.to_string(),
             title,
+            date_published,
+            date_updated,
+            tags,
             content,
-            tags: self.extract_tags_from_url(url),
         })
     }
 
@@ -297,27 +301,142 @@ impl OptimizedScraper {
             .filter(|s| !s.is_empty())
     }
 
-
+    fn extract_dates(&self, document: &Html) -> (Option<String>, Option<String>) {
+        // Look for date patterns in specific HTML elements
+        let selectors_to_try = [
+            "p[align='center'] font",
+            "p font", 
+            "font",
+            "em font",
+            "blockquote p font"
+        ];
+        
+        let mut date_published = None;
+        let mut date_updated = None;
+        
+        for selector_str in &selectors_to_try {
+            if let Ok(selector) = Selector::parse(selector_str) {
+                for element in document.select(&selector) {
+                    let text = element.text().collect::<String>();
+                    
+                    // Look for date patterns in author blocks
+                    if text.to_lowercase().contains("by david j. stewart") || 
+                       text.to_lowercase().contains("david j. stewart") {
+                        
+                        // Extract dates from this element
+                        let (published, updated) = self.extract_dates_from_text(&text);
+                        if published.is_some() && date_published.is_none() {
+                            date_published = published;
+                        }
+                        if updated.is_some() && date_updated.is_none() {
+                            date_updated = updated;
+                        }
+                    }
+                }
+            }
+        }
+        
+        (date_published, date_updated)
+    }
+    
+    fn extract_dates_from_text(&self, text: &str) -> (Option<String>, Option<String>) {
+        let mut date_published = None;
+        let mut date_updated = None;
+        
+        // Patterns for date extraction
+        let date_patterns = [
+            // "October 2004 | Updated September 2018" - extract both dates
+            r"(?i)\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\s*\|\s*updated\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b",
+            // "by David J. Stewart | March 2006" - single date after pipe
+            r"(?i)\|\s*(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b",
+            // Standalone date like "October 2004"
+            r"(?i)\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b",
+            // "Updated September 2018" - extract updated date
+            r"(?i)updated\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b",
+        ];
+        
+        for pattern in &date_patterns {
+            if let Ok(re) = Regex::new(pattern) {
+                if let Some(captures) = re.captures(text) {
+                    if captures.len() == 5 { // Pattern with both published and updated dates
+                        if let (Some(pub_month), Some(pub_year), Some(upd_month), Some(upd_year)) = 
+                            (captures.get(1), captures.get(2), captures.get(3), captures.get(4)) {
+                            date_published = self.format_date(pub_month.as_str(), pub_year.as_str());
+                            date_updated = self.format_date(upd_month.as_str(), upd_year.as_str());
+                            break;
+                        }
+                    } else if captures.len() == 3 { // Single date pattern
+                        if let (Some(month), Some(year)) = (captures.get(1), captures.get(2)) {
+                            let formatted_date = self.format_date(month.as_str(), year.as_str());
+                            
+                            // If it's an "updated" pattern, it's an update date
+                            if pattern.contains("updated") {
+                                date_updated = formatted_date;
+                            } else {
+                                // First date found is usually published date
+                                if date_published.is_none() {
+                                    date_published = formatted_date;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        (date_published, date_updated)
+    }
+    
+    fn format_date(&self, month_name: &str, year: &str) -> Option<String> {
+        let month_num = match month_name.to_lowercase().as_str() {
+            "january" => "01",
+            "february" => "02",
+            "march" => "03",
+            "april" => "04",
+            "may" => "05",
+            "june" => "06",
+            "july" => "07",
+            "august" => "08",
+            "september" => "09",
+            "october" => "10",
+            "november" => "11",
+            "december" => "12",
+            _ => return None,
+        };
+        
+        Some(format!("{}-{}-01", year, month_num))
+    }
 
     fn extract_tags_from_url(&self, url: &str) -> Vec<String> {
         let stopwords = [
             "in", "of", "the", "and", "a", "an", "on", "for", "to", "by", "with", "at", "from",
-            "as", "is", "it", "that", "this", "be", "or", "are", "was", "were", "but", "not",
-            "so", "if", "then", "than", "too", "very", "can", "will", "just", "do", "does",
-            "did", "has", "have", "had", "about", "into", "out", "up", "down", "over", "under",
-            "again", "further", "once", "here", "there", "when", "where", "why", "how", "all",
-            "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor",
-            "only", "own", "same", "s", "t", "don", "should", "now"
+            "is", "are", "was", "were", "be", "been", "have", "has", "had", "do", "does", "did",
+            "will", "would", "could", "should", "may", "might", "can", "must", "shall",
+            "this", "that", "these", "those", "i", "you", "he", "she", "it", "we", "they",
+            "me", "him", "her", "us", "them", "my", "your", "his", "its", "our", "their",
+            "but", "or", "so", "if", "then", "else", "when", "where", "why", "how", "what",
+            "who", "which", "whom", "whose", "all", "any", "some", "each", "every", "no",
+            "not", "only", "just", "also", "even", "still", "yet", "already", "again",
+            "more", "most", "much", "many", "few", "little", "less", "least", "very",
+            "too", "so", "quite", "rather", "pretty", "enough", "about", "around", "over",
+            "under", "above", "below", "through", "into", "onto", "out", "up", "down",
+            "off", "away", "back", "here", "there", "now", "then", "today", "tomorrow",
+            "yesterday", "never", "always", "sometimes", "often", "usually", "rarely",
+            "com", "www", "http", "https", "html", "htm", "php", "asp", "jsp", "pdf",
+            "home", "index", "page", "site", "web", "link", "url", "download", "file"
         ];
 
         let mut tags = Vec::new();
         if let Ok(parsed_url) = Url::parse(url) {
             if let Some(segments) = parsed_url.path_segments() {
                 for segment in segments {
+                    // Remove file extension
                     let segment = segment.split('.').next().unwrap_or("");
+                    // Decode percent-encoded characters
                     let decoded = percent_encoding::percent_decode_str(segment).decode_utf8_lossy();
                     
-                    for part in decoded.split(|c| c == ' ' || c == '_' || c == '-') {
+                    // Split on delimiters and process each part
+                    for part in decoded.split(|c| c == ' ' || c == '_' || c == '-' || c == '%') {
                         let tag = part.trim().to_lowercase();
                         if tag.len() > 2 && !stopwords.contains(&tag.as_str()) && !tags.contains(&tag) {
                             tags.push(tag);
@@ -328,6 +447,7 @@ impl OptimizedScraper {
         }
         tags
     }
+
 
     async fn update_progress(&self, total: usize) {
         let processed = self.processed_count.load(Ordering::Relaxed);
@@ -569,7 +689,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("      \"url\": \"string\",         // Original page URL");
                 println!("      \"title\": \"string?\",      // Page title (optional)");
                 println!("      \"content\": \"string\",     // Markdown-formatted content");
-                println!("      \"tags\": [\"string\"]       // Auto-extracted tags");
+                println!("      \"tags\": [\"string\"],      // Auto-extracted tags");
+                println!("      \"date\": \"string\"        // Publishing date (YYYY-MM-DD)");
                 println!("    }}");
                 println!();
                 println!("EXAMPLES:");
