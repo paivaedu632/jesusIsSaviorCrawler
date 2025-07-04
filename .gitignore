@@ -1,0 +1,27 @@
+# Rust
+/target/
+Cargo.lock
+*.pdb
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# Scraper cache and state
+scraper_cache.json
+scraper_progress.json
+
+# Output files
+posts.json
+
+# Downloaded assets
+assets/

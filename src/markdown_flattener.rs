@@ -8,18 +8,36 @@ use sha2::{Sha256, Digest};
 use tokio::fs;
 use html_escape::decode_html_entities;
 
-/// Converts HTML document to markdown format with asset downloading
+/// Converts HTML document to **Markdown format** with asset downloading
 /// 
-/// Walks the DOM and appends text nodes with normalized whitespace. Converts:
-/// - `<br>/<p>/<div>` to `\n\n`
-/// - `<strong>/<b>` to `**text**`
-/// - `<em>/<i>` to `*text*`
-/// - `<img>` to `![alt](local_or_remote_url)`
-/// - `<a>` to `[text](url)`
-/// - Internal media links (`.mp3`, `.mp4`, `.wav`, etc.) to `🔊 [Audio](local_path)` / `▶️ [Video](local_path)`
+/// This function implements a **simplified content extraction approach** that produces
+/// clean, readable Markdown instead of complex nested structures. It enables:
 /// 
-/// Reuses existing asset download helpers and returns local paths to embed in markdown.
-/// Finally, collapses multiple blank lines and trims.
+/// **Simplified Schema Benefits:**
+/// - Direct markdown content in JSON instead of complex nested objects
+/// - Easier processing and display in frontend applications  
+/// - Better readability and maintainability
+/// - Reduced data size and improved performance
+/// 
+/// **Markdown Conversion Features:**
+/// - `<br>/<p>/<div>` to `\n\n` (paragraph breaks)
+/// - `<strong>/<b>` to `**text**` (bold formatting)
+/// - `<em>/<i>` to `*text*` (italic formatting) 
+/// - `<h1-h6>` to `# ## ### ####` etc. (headers)
+/// - `<img>` to `![alt](local_or_remote_url)` (images)
+/// - `<a>` to `[text](url)` (links)
+/// - Internal media links to `🔊 [Audio](local_path)` / `▶️ [Video](local_path)`
+/// 
+/// **Asset Management:**
+/// - Downloads and organizes images, videos, and audio files
+/// - Generates unique filenames using SHA256 hashes
+/// - Updates markdown to reference local asset paths
+/// - Supports resumable downloads with caching
+/// 
+/// **Output Integration:**
+/// - Returns markdown string that goes directly into the simplified Post schema
+/// - Eliminates need for complex nested content structures
+/// - Maintains formatting while keeping data structure flat
 /// 
 /// # Arguments
 /// * `document` - The parsed HTML document
@@ -61,7 +79,7 @@ impl HtmlToMarkdownConverter {
             .unwrap_or_default();
 
         // Create asset directories
-        let dirs = ["ui/public/images", "ui/public/videos", "ui/public/audio"];
+        let dirs = ["assets/images", "assets/videos", "assets/audio"];
         for dir in dirs {
             fs::create_dir_all(dir).await.ok();
         }
@@ -339,7 +357,7 @@ impl HtmlToMarkdownConverter {
             .and_then(|e| e.to_str())
             .unwrap_or("bin");
         let filename = format!("{}.{}", hash, ext);
-        let save_path = format!("ui/public/{}/{}", folder, filename);
+        let save_path = format!("assets/{}/{}", folder, filename);
         
         // Check if file already exists
         if Path::new(&save_path).exists() {

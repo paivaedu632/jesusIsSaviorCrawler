@@ -29,7 +29,7 @@ use url::Url;
 use regex::Regex;
 use encoding_rs::{Encoding, UTF_8};
 use percent_encoding;
-use jesus_is_savior_crawler::html_to_markdown;
+use jesus_is_savior_crawler::{html_to_markdown, Post};
 
 // Configuration constants
 const MAX_CONCURRENT_REQUESTS: usize = 100; // Reduced for better stability
@@ -46,15 +46,6 @@ const PROGRESS_FILE: &str = "scraper_progress.json";
 
 // NarrativeElement enum removed - now generating markdown directly
 
-#[derive(Serialize, Deserialize, Clone)]
-struct Post {
-    avatar: String,
-    username: String,
-    url: String,
-    title: Option<String>,
-    content: String,      // markdown
-    tags: Vec<String>,
-}
 
 #[derive(Serialize, Deserialize, Default)]
 struct ScraperCache {
@@ -115,7 +106,7 @@ impl OptimizedScraper {
         let progress = Arc::new(Mutex::new(Self::load_progress().await));
 
         // Create asset directories
-        for dir in &["ui/public/images", "ui/public/videos", "ui/public/audio"] {
+        for dir in &["assets/images", "assets/videos", "assets/audio"] {
             fs::create_dir_all(dir).await.ok();
         }
 
@@ -501,7 +492,7 @@ impl Default for ScraperConfig {
     fn default() -> Self {
         Self {
             urls_file: "urls.txt".to_string(),
-            output_file: "ui/public/posts.json".to_string(),
+            output_file: "posts.json".to_string(),
             max_concurrent: MAX_CONCURRENT_REQUESTS,
             rate_limit_ms: RATE_LIMIT_DELAY_MS,
             retry_attempts: RETRY_ATTEMPTS,
@@ -548,27 +539,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config.verbose = true;
             }
             "--help" | "-h" => {
-                println!("Optimized Post Scraper");
-                println!("Usage: cargo run --release --bin optimized_scrape_posts [OPTIONS]");
-                println!("Options:");
-                println!("  --urls, -u FILE       URLs file (default: urls.txt)");
-                println!("  --output, -o FILE     Output JSON file (default: ui/public/posts.json)");
-                println!("  --concurrent, -c NUM  Max concurrent requests (default: {})", MAX_CONCURRENT_REQUESTS);
-                println!("  --rate-limit, -r MS   Rate limit delay in ms (default: {})", RATE_LIMIT_DELAY_MS);
-                println!("  --retries NUM         Number of retry attempts (default: {})", RETRY_ATTEMPTS);
-                println!("  --clear-cache         Clear cache before starting");
-                println!("  --verbose, -v         Verbose output");
-                println!("  --help, -h            Show this help");
+                println!("🚀 Optimized Web Scraper with Markdown Output");
+                println!("Converts HTML content to clean Markdown format with simplified JSON schema");
+                println!();
+                println!("USAGE:");
+                println!("    cargo run --release --bin scrape_posts [OPTIONS]");
+                println!();
+                println!("FEATURES:");
+                println!("    • Direct HTML-to-Markdown conversion for clean, readable content");
+                println!("    • Simplified JSON schema with essential fields only");
+                println!("    • Automatic asset downloading (images, videos, audio)");
+                println!("    • High-performance concurrent processing");
+                println!("    • Smart caching and resumable operations");
+                println!();
+                println!("OPTIONS:");
+                println!("    --urls, -u FILE       URLs file (default: urls.txt)");
+                println!("    --output, -o FILE     Output JSON with Markdown content (default: posts.json)");
+                println!("    --concurrent, -c NUM  Max concurrent requests (default: {})", MAX_CONCURRENT_REQUESTS);
+                println!("    --rate-limit, -r MS   Rate limit delay in ms (default: {})", RATE_LIMIT_DELAY_MS);
+                println!("    --retries NUM         Number of retry attempts (default: {})", RETRY_ATTEMPTS);
+                println!("    --clear-cache         Clear cache before starting");
+                println!("    --verbose, -v         Verbose output");
+                println!("    --help, -h            Show this help");
+                println!();
+                println!("OUTPUT SCHEMA:");
+                println!("    {{");
+                println!("      \"avatar\": \"string\",      // Author avatar URL");
+                println!("      \"username\": \"string\",    // Author name");
+                println!("      \"url\": \"string\",         // Original page URL");
+                println!("      \"title\": \"string?\",      // Page title (optional)");
+                println!("      \"content\": \"string\",     // Markdown-formatted content");
+                println!("      \"tags\": [\"string\"]       // Auto-extracted tags");
+                println!("    }}");
+                println!();
+                println!("EXAMPLES:");
+                println!("    cargo run --release --bin scrape_posts");
+                println!("    cargo run --release --bin scrape_posts --urls my_urls.txt --output results.json");
+                println!("    cargo run --release --bin scrape_posts --concurrent 50 --rate-limit 200");
                 return Ok(());
             }
             _ => {}
         }
     }
     
-    println!("🚀 Starting Optimized Post Scraper");
-    println!("Configuration:");
+    println!("🚀 Starting Optimized Web Scraper with Markdown Output");
+    println!("Converting HTML content to clean Markdown format with simplified JSON schema");
+    println!();
+    println!("📝 Output Features:");
+    println!("  • Direct HTML-to-Markdown conversion");
+    println!("  • Simplified schema with essential fields only");
+    println!("  • Automatic asset downloading and embedding");
+    println!("  • Clean, readable content format");
+    println!();
+    println!("⚙️ Configuration:");
     println!("  URLs file: {}", config.urls_file);
-    println!("  Output file: {}", config.output_file);
+    println!("  Output file: {} (JSON with Markdown content)", config.output_file);
     println!("  Max concurrent requests: {}", config.max_concurrent);
     println!("  Rate limit delay: {}ms", config.rate_limit_ms);
     println!("  Retry attempts: {}", config.retry_attempts);
@@ -622,7 +647,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let json_content = serde_json::to_string_pretty(&posts)?;
         fs::write(&config.output_file, json_content).await?;
         
-        println!("✅ Saved {} posts to {}", posts.len(), config.output_file);
+        println!("✅ Saved {} posts with Markdown content to {}", posts.len(), config.output_file);
+        println!("📝 Content format: Clean Markdown with embedded assets");
         println!("⏱️ Total time: {:.2}s ({:.2} posts/second)", 
                  elapsed_secs, posts.len() as f64 / elapsed_secs);
     } else {

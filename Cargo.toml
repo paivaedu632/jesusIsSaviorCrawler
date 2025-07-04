@@ -2,27 +2,40 @@
 name = "jesus_is_savior_crawler"
 version = "0.1.0"
 edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A high-performance web scraper for extracting content as markdown"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/jesusIsSaviorCrawler"
+keywords = ["scraper", "web", "markdown", "html", "content"]
+categories = ["web-programming", "command-line-utilities"]
+
+[[bin]]
+name = "scrape_posts"
+path = "src/bin/scrape_posts.rs"
+
+[[bin]]
+name = "test_markdown_flattener"
+path = "src/bin/test_markdown_flattener.rs"
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json", "blocking", "native-tls", "gzip", "brotli", "deflate", "http2"] }
-scraper = "0.23"
-tokio = { version = "1", features = ["full"] }
-url = "2.5"
+# Core HTTP and async functionality
+reqwest = { version = "0.12", features = ["json", "gzip", "deflate"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "time"] }
 futures = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-rand = "0.8"
-dotenv = "0.15"
-anyhow = "1.0"
-quick-xml = "0.31"
+
+# HTML parsing and processing
+scraper = "0.23"
 html-escape = "0.2"
 regex = "1"
-encoding_rs = "0.8"
-encoding_rs_io = "0.1"
-sha2 = "0.10"
+
+# URL handling
+url = "2.5"
 percent-encoding = "2"
-dashmap = "5.5"  # For concurrent HashMap operations
-rayon = "1.8"    # For parallel processing
-indicatif = "0.17"  # For progress bars
-clap = { version = "4.4", features = ["derive"] }  # For CLI arguments
-chrono = { version = "0.4", features = ["serde"] }  # For timestamps
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Cryptography and encoding
+sha2 = "0.10"
+encoding_rs = "0.8"
