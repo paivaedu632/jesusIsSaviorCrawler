@@ -1,0 +1,1 @@
+C:\Users\User\Documents\GitHub\jesusIsSaviorCrawler\target\debug\scrape_posts.exe: C:\Users\User\Documents\GitHub\jesusIsSaviorCrawler\src\bin\scrape_posts.rs C:\Users\User\Documents\GitHub\jesusIsSaviorCrawler\src\lib.rs C:\Users\User\Documents\GitHub\jesusIsSaviorCrawler\src\markdown_flattener.rs

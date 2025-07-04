@@ -1,0 +1,28 @@
+[package]
+name = "jesus_is_savior_crawler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json", "blocking", "native-tls", "gzip", "brotli", "deflate", "http2"] }
+scraper = "0.23"
+tokio = { version = "1", features = ["full"] }
+url = "2.5"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand = "0.8"
+dotenv = "0.15"
+anyhow = "1.0"
+quick-xml = "0.31"
+html-escape = "0.2"
+regex = "1"
+encoding_rs = "0.8"
+encoding_rs_io = "0.1"
+sha2 = "0.10"
+percent-encoding = "2"
+dashmap = "5.5"  # For concurrent HashMap operations
+rayon = "1.8"    # For parallel processing
+indicatif = "0.17"  # For progress bars
+clap = { version = "4.4", features = ["derive"] }  # For CLI arguments
+chrono = { version = "0.4", features = ["serde"] }  # For timestamps
